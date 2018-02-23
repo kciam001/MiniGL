@@ -419,10 +419,15 @@ void mglTranslate(MGLfloat x,
                   MGLfloat y,
                   MGLfloat z)
 {
-  mat4 translate = {{1, 0, 0, x,
-                     0, 1, 0, y,
-                     0, 0, 1, z, 
-                     0, 0, 0, 1}};
+  // mat4 translate = {{1, 0, 0, x,
+  //                    0, 1, 0, y,
+  //                    0, 0, 1, z, 
+  //                    0, 0, 0, 1}};
+
+  mat4 translate =    {{1, 0, 0, 0,
+                        0, 1, 0, 0,
+                        0, 0, 1, 0,
+                        x, y, z, 1}};
 
     if(currMatrixMode == MGL_MODELVIEW)
     { 
