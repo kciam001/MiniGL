@@ -74,18 +74,7 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
-mat4 top_of_active_matrix_stack()
-{
-    if(currMatrixMode == MGL_MODELVIEW)
-    {
-        return modelview.back();
-    }
-    else if(currMatrixMode == MGL_PROJECTION)
-    {
-        return projection.back();
-    }
-  
-}
+
 
 
 float Area(vec2 a, vec2 b, vec2 c)
@@ -283,6 +272,22 @@ void mglVertex2(MGLfloat x,
   mglVertex3(x,y,0);
 }
 
+mat4 top_of_active_matrix_stack()
+{
+    if(currMatrixMode == MGL_MODELVIEW)
+    {
+      cout << "MODELVIEW" << endl;
+        return modelview.back();
+    }
+    else if(currMatrixMode == MGL_PROJECTION)
+    {
+        cout << "PROJECTION" << endl;
+        return projection.back();
+    }
+  
+}
+
+
 /**
  * Specify a three-dimensional vertex.  Must appear between
  * calls to mglBegin() and mglEnd().
@@ -292,7 +297,8 @@ void mglVertex3(MGLfloat x,
                 MGLfloat z)
 {
   vec4 currPos(x, y, z, 1);
-  
+
+  //cout <<  "--------------"  << endl << top_of_active_matrix_stack() << endl << "-------x-------" << endl << projection.back() << endl;
 
   currPos = projection.back() * modelview.back() * currPos;
 
@@ -326,6 +332,14 @@ void mglMatrixMode(MGLmatrix_mode mode)
  */
 void mglPushMatrix()
 {
+  if(currMatrixMode == MGL_MODELVIEW)
+  {
+      modelview.push_back(modelview.at(modelview.size()-1));
+  }
+  else if (currMatrixMode == MGL_PROJECTION)
+  {
+      projection.push_back(projection.at(projection.size()-1));
+  }
 }
 
 /**
@@ -334,6 +348,14 @@ void mglPushMatrix()
  */
 void mglPopMatrix()
 {
+  if(currMatrixMode == MGL_MODELVIEW)
+  {
+    modelview.pop_back();
+  }
+  else if(currMatrixMode == MGL_PROJECTION)
+  {
+    projection.pop_back();
+  }
 }
 
 /**
@@ -397,6 +419,19 @@ void mglTranslate(MGLfloat x,
                   MGLfloat y,
                   MGLfloat z)
 {
+  mat4 translate = {{1, 0, 0, x,
+                     0, 1, 0, y,
+                     0, 0, 1, z, 
+                     0, 0, 0, 1}};
+
+    if(currMatrixMode == MGL_MODELVIEW)
+    { 
+        modelview.at(modelview.size()-1) = translate * modelview.back(); 
+    }
+    else if(currMatrixMode == MGL_PROJECTION)
+    {
+        projection.at(projection.size()-1) = translate * projection.back(); 
+    }
 }
 
 /**
@@ -419,6 +454,19 @@ void mglScale(MGLfloat x,
               MGLfloat y,
               MGLfloat z)
 {
+  mat4 scale = {{x, 0, 0, 0,
+                 0, y, 0, 0,
+                 0, 0, z, 0,
+                 0, 0, 0, 1}};
+
+    if(currMatrixMode == MGL_MODELVIEW)
+    { 
+        modelview.at(modelview.size()-1) = scale * modelview.back(); 
+    }
+    else if(currMatrixMode == MGL_PROJECTION)
+    {
+        projection.at(projection.size()-1) = scale * projection.back(); 
+    }
 }
 
 /**
@@ -440,11 +488,11 @@ void mglFrustum(MGLfloat left,
 
     if(currMatrixMode == MGL_MODELVIEW)
     {
-      modelview.at(modelview.size()-1) = top_of_active_matrix_stack() * perspectiveMatrix;
+      modelview.at(modelview.size()-1) = modelview.back() * perspectiveMatrix;
     }
     else if (currMatrixMode == MGL_PROJECTION)
     {
-      projection.at(projection.size()-1) = top_of_active_matrix_stack() * perspectiveMatrix;
+      projection.at(projection.size()-1) = projection.back() * perspectiveMatrix;
     }
 
 
@@ -483,11 +531,12 @@ void mglOrtho(MGLfloat left,
 
     if(currMatrixMode == MGL_MODELVIEW)
     {
-      modelview.at(modelview.size()-1) = top_of_active_matrix_stack() * orthoMatrix;
+      modelview.at(modelview.size()-1) = modelview.back() * orthoMatrix;
     }
     else if (currMatrixMode == MGL_PROJECTION)
     {
-      projection.at(projection.size()-1) = top_of_active_matrix_stack() * orthoMatrix;
+      cout << projection.back() << endl;
+      projection.at(projection.size()-1) = projection.back() * orthoMatrix;
     }
 
 
