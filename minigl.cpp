@@ -49,8 +49,15 @@ struct Triangle{
  */
 //mat4 modelview;
 //mat4 projection;
-vector<mat4> modelview;
-vector<mat4> projection;
+vector<mat4> modelview {{0, 0, 0, 0,
+                         0, 0, 0, 0,
+                         0, 0, 0, 0,
+                         0, 0, 0, 0}};
+
+vector<mat4> projection {{0, 0, 0, 0,
+                          0, 0, 0, 0,
+                          0, 0, 0, 0,
+                          0, 0, 0, 0}};
 
 
 vec3 currColor;
@@ -65,6 +72,19 @@ MGLmatrix_mode currMatrixMode;
 inline void MGL_ERROR(const char* description) {
     printf("%s\n", description);
     exit(1);
+}
+
+mat4 top_of_active_matrix_stack()
+{
+    if(currMatrixMode == MGL_MODELVIEW)
+    {
+        return modelview.back();
+    }
+    else if(currMatrixMode == MGL_PROJECTION)
+    {
+        return projection.back();
+    }
+  
 }
 
 
@@ -323,17 +343,17 @@ void mglLoadIdentity()
 {
   if(currMatrixMode == MGL_MODELVIEW)
   {
-    modelview.push_back({{1, 0, 0, 0,
+    modelview.at(modelview.size()-1) = {{1, 0, 0, 0,
                    0, 1, 0, 0,
                    0, 0, 1, 0,
-                   0, 0, 0, 1}});
+                   0, 0, 0, 1}};
   }
   else if (currMatrixMode == MGL_PROJECTION)
   {
-    projection.push_back({{1, 0, 0, 0,
+    projection.at(projection.size()-1) = {{1, 0, 0, 0,
                    0, 1, 0, 0,
                    0, 0, 1, 0,
-                   0, 0, 0, 1}});
+                   0, 0, 0, 1}};
   }
 }
 
@@ -412,20 +432,36 @@ void mglFrustum(MGLfloat left,
                 MGLfloat near,
                 MGLfloat far)
 {
-  if(currMatrixMode == MGL_MODELVIEW)
-  {
-    modelview.push_back({{((2 * near)/(right - left)),0,0,0,
-                    0, ((2 * near) / (top - bottom)), 0, 0, 
-                    ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
-                    0, 0, ((-2*far*near)/(far - near)), 0}});  
-  }
-  else if (currMatrixMode == MGL_PROJECTION)
-  {
-   projection.push_back({{((2 * near)/(right - left)),0,0,0,
-                    0, ((2 * near) / (top - bottom)), 0, 0, 
-                    ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
-                    0, 0, ((-2*far*near)/(far - near)), 0}}); 
-  }
+
+    mat4 perspectiveMatrix = {{((2 * near)/(right - left)),0,0,0,
+                     0, ((2 * near) / (top - bottom)), 0, 0, 
+                     ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
+                     0, 0, ((-2*far*near)/(far - near)), 0}};
+
+    if(currMatrixMode == MGL_MODELVIEW)
+    {
+      modelview.at(modelview.size()-1) = top_of_active_matrix_stack() * perspectiveMatrix;
+    }
+    else if (currMatrixMode == MGL_PROJECTION)
+    {
+      projection.at(projection.size()-1) = top_of_active_matrix_stack() * perspectiveMatrix;
+    }
+
+
+  // if(currMatrixMode == MGL_MODELVIEW)
+  // {
+  //   modelview.push_back({{((2 * near)/(right - left)),0,0,0,
+  //                   0, ((2 * near) / (top - bottom)), 0, 0, 
+  //                   ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
+  //                   0, 0, ((-2*far*near)/(far - near)), 0}});  
+  // }
+  // else if (currMatrixMode == MGL_PROJECTION)
+  // {
+  //  projection.push_back({{((2 * near)/(right - left)),0,0,0,
+  //                   0, ((2 * near) / (top - bottom)), 0, 0, 
+  //                   ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
+  //                   0, 0, ((-2*far*near)/(far - near)), 0}}); 
+  // }
 }
 
 /**
@@ -439,20 +475,42 @@ void mglOrtho(MGLfloat left,
               MGLfloat near,
               MGLfloat far)
 {
-  if(currMatrixMode == MGL_MODELVIEW)
-  {
-    modelview.push_back({{2/(right-left), 0, 0, 0,
-                 0, 2/(top-bottom), 0, 0,
-                 0, 0, -2/(far-near), 0, 
-                -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}});  
-  }
-  else if (currMatrixMode == MGL_PROJECTION)
-  {
-  projection.push_back({{2/(right-left), 0, 0, 0,
-                 0, 2/(top-bottom), 0, 0,
-                 0, 0, -2/(far-near), 0, 
-                -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}});
-  }
+
+    mat4 orthoMatrix = {{2/(right-left), 0, 0, 0,
+                        0, 2/(top-bottom), 0, 0,
+                        0, 0, -2/(far-near), 0, 
+                        -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}};
+
+    if(currMatrixMode == MGL_MODELVIEW)
+    {
+      modelview.at(modelview.size()-1) = top_of_active_matrix_stack() * orthoMatrix;
+    }
+    else if (currMatrixMode == MGL_PROJECTION)
+    {
+      projection.at(projection.size()-1) = top_of_active_matrix_stack() * orthoMatrix;
+    }
+
+
+
+
+
+
+
+
+  // if(currMatrixMode == MGL_MODELVIEW)
+  // {
+  //   modelview.push_back({{2/(right-left), 0, 0, 0,
+  //                0, 2/(top-bottom), 0, 0,
+  //                0, 0, -2/(far-near), 0, 
+  //               -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}});  
+  // }
+  // else if (currMatrixMode == MGL_PROJECTION)
+  // {
+  // projection.push_back({{2/(right-left), 0, 0, 0,
+  //                0, 2/(top-bottom), 0, 0,
+  //                0, 0, -2/(far-near), 0, 
+  //               -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}});
+  // }
 
     
 }
