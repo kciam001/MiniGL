@@ -47,8 +47,12 @@ struct Triangle{
 /**
  *Global Variables
  */
-mat4 modelview;
-mat4 projection;
+//mat4 modelview;
+//mat4 projection;
+vector<mat4> modelview;
+vector<mat4> projection;
+
+
 vec3 currColor;
 vector<Vertex> currVertices;
 vector<Triangle> currTriangles;
@@ -270,7 +274,7 @@ void mglVertex3(MGLfloat x,
   vec4 currPos(x, y, z, 1);
   
 
-  currPos = projection * modelview * currPos;
+  currPos = projection.back() * modelview.back() * currPos;
 
   currPos = currPos / currPos[3];
 
@@ -319,17 +323,17 @@ void mglLoadIdentity()
 {
   if(currMatrixMode == MGL_MODELVIEW)
   {
-    modelview = {{1, 0, 0, 0,
+    modelview.push_back({{1, 0, 0, 0,
                    0, 1, 0, 0,
                    0, 0, 1, 0,
-                   0, 0, 0, 1}};
+                   0, 0, 0, 1}});
   }
   else if (currMatrixMode == MGL_PROJECTION)
   {
-    projection = {{1, 0, 0, 0,
+    projection.push_back({{1, 0, 0, 0,
                    0, 1, 0, 0,
                    0, 0, 1, 0,
-                   0, 0, 0, 1}};
+                   0, 0, 0, 1}});
   }
 }
 
@@ -410,17 +414,17 @@ void mglFrustum(MGLfloat left,
 {
   if(currMatrixMode == MGL_MODELVIEW)
   {
-    modelview = {{((2 * near)/(right - left)),0,0,0,
+    modelview.push_back({{((2 * near)/(right - left)),0,0,0,
                     0, ((2 * near) / (top - bottom)), 0, 0, 
                     ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
-                    0, 0, ((-2*far*near)/(far - near)), 0}};  
+                    0, 0, ((-2*far*near)/(far - near)), 0}});  
   }
   else if (currMatrixMode == MGL_PROJECTION)
   {
-   projection = {{((2 * near)/(right - left)),0,0,0,
+   projection.push_back({{((2 * near)/(right - left)),0,0,0,
                     0, ((2 * near) / (top - bottom)), 0, 0, 
                     ((right + left) / (right - left)), ((top + bottom)/(top - bottom)), (-(far + near)/(far - near)), -1,
-                    0, 0, ((-2*far*near)/(far - near)), 0}}; 
+                    0, 0, ((-2*far*near)/(far - near)), 0}}); 
   }
 }
 
@@ -437,17 +441,17 @@ void mglOrtho(MGLfloat left,
 {
   if(currMatrixMode == MGL_MODELVIEW)
   {
-    modelview = {{2/(right-left), 0, 0, 0,
+    modelview.push_back({{2/(right-left), 0, 0, 0,
                  0, 2/(top-bottom), 0, 0,
                  0, 0, -2/(far-near), 0, 
-                -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}};  
+                -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}});  
   }
   else if (currMatrixMode == MGL_PROJECTION)
   {
-  projection = {{2/(right-left), 0, 0, 0,
+  projection.push_back({{2/(right-left), 0, 0, 0,
                  0, 2/(top-bottom), 0, 0,
                  0, 0, -2/(far-near), 0, 
-                -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}};
+                -(right + left)/(right-left), -(top+bottom)/(top-bottom), -(far + near)/(far-near), 1}});
   }
 
     
