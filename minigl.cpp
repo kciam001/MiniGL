@@ -66,7 +66,9 @@ vector<Triangle> currTriangles;
 MGLpoly_mode currMode;
 MGLmatrix_mode currMatrixMode;
 
-/**
+vector<vector<MGLfloat>>zBuffer;
+
+/** 
  * Standard macro to report errors
  */
 inline void MGL_ERROR(const char* description) {
@@ -95,7 +97,9 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
   MGLfloat alpha;
   MGLfloat beta;
   MGLfloat gamma;
-  
+  MGLfloat zValue;
+
+
   vec3 colors; 
 
 
@@ -157,6 +161,7 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
       beta = Area(A,P,C) / Area(A,B,C);
       gamma = Area(A,B,P) / Area(A,B,C);
 
+      
        //std::cout << alpha << std::endl;
        //std::cout << beta << std::endl;
        //std::cout << gamma << std::endl;
@@ -167,7 +172,14 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
       {
         //std::cout << "test" << std::endl;
         colors = ((tri.A.color * alpha )+ (tri.B.color * beta) + (tri.C.color * gamma)); 
-        data[i + j * width] = Make_Pixel(255 * colors[0], 255* colors[1], 255* colors[2]); 
+        zValue = ((tri.A.position[2] * alpha )+ (tri.B.position[2] * beta) + (tri.C.position[2] * gamma));
+        if(zValue <= zBuffer.at(i).at(j))
+        {
+          data[i + j * width] = Make_Pixel(255 * colors[0], 255* colors[1], 255* colors[2]);
+          zBuffer.at(i).at(j) = zValue;      
+        }
+
+
       }
       
     }
@@ -194,12 +206,18 @@ void mglReadPixels(MGLsize width,
                    MGLpixel *data)
 {
 
+  zBuffer.resize(width);
+  for (int i = 0; i < width; i++)
+  {
+    zBuffer.at(i).resize(height);
+  }
 
   for(int i = 0; i < width; i++)
   {
     for(int j = 0; j < height; j++)
     {
       data[i+j*width] = Make_Pixel(0,0,0);
+      zBuffer.at(i).at(j) = 100;
     }
   }
   
@@ -230,11 +248,12 @@ void mglEnd()
   {
     for (unsigned i = 0; i < currVertices.size(); i+= 3)
     {
-  
+      
       Triangle newTriangle;
       newTriangle.A = currVertices.at(i);
       newTriangle.B = currVertices.at(i+1);
       newTriangle.C = currVertices.at(i+2);
+
 
       currTriangles.push_back(newTriangle);
     }
@@ -366,16 +385,16 @@ void mglLoadIdentity()
   if(currMatrixMode == MGL_MODELVIEW)
   {
     modelview.at(modelview.size()-1) = {{1, 0, 0, 0,
-                   0, 1, 0, 0,
-                   0, 0, 1, 0,
-                   0, 0, 0, 1}};
+                                         0, 1, 0, 0,
+                                         0, 0, 1, 0,
+                                         0, 0, 0, 1}};
   }
   else if (currMatrixMode == MGL_PROJECTION)
   {
     projection.at(projection.size()-1) = {{1, 0, 0, 0,
-                   0, 1, 0, 0,
-                   0, 0, 1, 0,
-                   0, 0, 0, 1}};
+                                           0, 1, 0, 0,
+                                           0, 0, 1, 0,
+                                           0, 0, 0, 1}};
   }
 }
 
@@ -393,6 +412,19 @@ void mglLoadIdentity()
  */
 void mglLoadMatrix(const MGLfloat *matrix)
 {
+  mat4 newMatrix = {{matrix[0], matrix[1], matrix[2], matrix[3],
+                      matrix[4], matrix[5], matrix[6], matrix[7],
+                      matrix[8], matrix[9], matrix[10], matrix[11],
+                      matrix[12], matrix[13], matrix[14], matrix[15]}};
+
+  if (currMatrixMode == MGL_MODELVIEW)
+  {
+      modelview.at(modelview.size()-1) = newMatrix; 
+  }
+  else if (currMatrixMode == MGL_PROJECTION)
+  {
+      projection.at(projection.size()-1) = newMatrix;
+  }
 }
 
 /**
@@ -409,6 +441,20 @@ void mglLoadMatrix(const MGLfloat *matrix)
  */
 void mglMultMatrix(const MGLfloat *matrix)
 {
+
+  mat4 multMatrix = {{matrix[0], matrix[1], matrix[2], matrix[3],
+                      matrix[4], matrix[5], matrix[6], matrix[7],
+                      matrix[8], matrix[9], matrix[10], matrix[11],
+                      matrix[12], matrix[13], matrix[14], matrix[15]}};
+
+  if (currMatrixMode == MGL_MODELVIEW)
+  {
+      modelview.at(modelview.size()-1) = modelview.back() * multMatrix; 
+  }
+  else if (currMatrixMode == MGL_PROJECTION)
+  {
+      projection.at(projection.size()-1) = projection.back() * multMatrix;
+  }
 }
 
 /**
@@ -431,11 +477,11 @@ void mglTranslate(MGLfloat x,
 
     if(currMatrixMode == MGL_MODELVIEW)
     { 
-        modelview.at(modelview.size()-1) = translate * modelview.back(); 
+        modelview.at(modelview.size()-1) = modelview.back() * translate ; 
     }
     else if(currMatrixMode == MGL_PROJECTION)
     {
-        projection.at(projection.size()-1) = translate * projection.back(); 
+        projection.at(projection.size()-1) = projection.back() * translate; 
     }
 }
 
@@ -449,6 +495,43 @@ void mglRotate(MGLfloat angle,
                MGLfloat y,
                MGLfloat z)
 {
+
+  MGLfloat radianAngle = (angle * 3.14159) / 180.0;
+  MGLfloat cosine =  cos(radianAngle);
+  MGLfloat sine = sin(radianAngle);
+
+  vec3 unitVec(x,y,z);
+  unitVec = unitVec.normalized();
+
+                    //------------column1--------------------------------------
+  mat4 rotation = {{cosine + (unitVec[0] * unitVec[0] * (1 - cosine)) , 
+                    unitVec[1] * unitVec[0] * (1 - cosine) + unitVec[2] * sine , 
+                    unitVec[2] * unitVec[0] * (1 - cosine) - unitVec[1] * sine , 
+                    0, 
+                    //------------column2---------------------------------------
+                    unitVec[0] * unitVec[1] * (1 - cosine) - unitVec[2] * sine ,
+                    cosine + (unitVec[1] * unitVec[1] * (1 - cosine)) ,
+                    unitVec[2] * unitVec[1] * (1 - cosine) + unitVec[0] * sine , 
+                    0, 
+                    //------------column3---------------------------------------
+                    unitVec[0] * unitVec[2] * (1 - cosine) + unitVec[1] * sine , 
+                    unitVec[1] * unitVec[2] * (1 - cosine) - unitVec[0] * sine , 
+                    cosine + (unitVec[2] * unitVec[2] * (1 - cosine)) ,
+                    0,
+                    //-----------column4----------------------------------------
+                    0,
+                    0,
+                    0,
+                    1}};
+
+    if(currMatrixMode == MGL_MODELVIEW)
+    { 
+        modelview.at(modelview.size()-1) = modelview.back() * rotation; 
+    }
+    else if(currMatrixMode == MGL_PROJECTION)
+    {
+        projection.at(projection.size()-1) = projection.back() * rotation; 
+    }
 }
 
 /**
@@ -466,11 +549,11 @@ void mglScale(MGLfloat x,
 
     if(currMatrixMode == MGL_MODELVIEW)
     { 
-        modelview.at(modelview.size()-1) = scale * modelview.back(); 
+        modelview.at(modelview.size()-1) = modelview.back() * scale; 
     }
     else if(currMatrixMode == MGL_PROJECTION)
     {
-        projection.at(projection.size()-1) = scale * projection.back(); 
+        projection.at(projection.size()-1) = projection.back() * scale; 
     }
 }
 
@@ -540,7 +623,7 @@ void mglOrtho(MGLfloat left,
     }
     else if (currMatrixMode == MGL_PROJECTION)
     {
-      cout << projection.back() << endl;
+      //cout << projection.back() << endl;
       projection.at(projection.size()-1) = projection.back() * orthoMatrix;
     }
 
