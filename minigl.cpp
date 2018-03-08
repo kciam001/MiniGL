@@ -66,6 +66,9 @@ vector<Triangle> currTriangles;
 MGLpoly_mode currMode;
 MGLmatrix_mode currMatrixMode;
 
+MGLfloat nearPlane = -1;
+MGLfloat farPlane = 1;
+
 vector<vector<MGLfloat>>zBuffer;
 
 /** 
@@ -173,8 +176,11 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
         //std::cout << "test" << std::endl;
         colors = ((tri.A.color * alpha )+ (tri.B.color * beta) + (tri.C.color * gamma)); 
         zValue = ((tri.A.position[2] * alpha )+ (tri.B.position[2] * beta) + (tri.C.position[2] * gamma));
-        if(zValue <= zBuffer.at(i).at(j))
+
+      
+        if(zValue <= zBuffer.at(i).at(j) && zValue >= nearPlane && zValue <= farPlane)
         {
+
           data[i + j * width] = Make_Pixel(255 * colors[0], 255* colors[1], 255* colors[2]);
           zBuffer.at(i).at(j) = zValue;      
         }
@@ -254,8 +260,42 @@ void mglEnd()
       newTriangle.B = currVertices.at(i+1);
       newTriangle.C = currVertices.at(i+2);
 
-
       currTriangles.push_back(newTriangle);
+
+      //CASE 1: Triangle inside cube
+      // if(abs(newTriangle.A.position.normalized()[0]) < 1 &&
+      //    abs(newTriangle.A.position.normalized()[1]) < 1 &&
+      //    abs(newTriangle.A.position.normalized()[2]) < 1 &&
+
+      //    abs(newTriangle.B.position.normalized()[0]) < 1 &&
+      //    abs(newTriangle.B.position.normalized()[1]) < 1 &&
+      //    abs(newTriangle.B.position.normalized()[2]) < 1 &&
+
+      //    abs(newTriangle.C.position.normalized()[0]) < 1 &&
+      //    abs(newTriangle.C.position.normalized()[1]) < 1 &&
+      //    abs(newTriangle.C.position.normalized()[2]) < 1)
+      // {
+      //     currTriangles.push_back(newTriangle);
+      // }
+
+      // //CASE 2: Triangle outside cube
+      // else if(abs(newTriangle.A.position.normalized()[0]) > 1 &&
+      //         abs(newTriangle.A.position.normalized()[1]) > 1 &&
+      //         abs(newTriangle.A.position.normalized()[2]) > 1 &&
+
+      //         abs(newTriangle.B.position.normalized()[0]) > 1 &&
+      //         abs(newTriangle.B.position.normalized()[1]) > 1 &&
+      //         abs(newTriangle.B.position.normalized()[2]) > 1 &&
+
+      //         abs(newTriangle.C.position.normalized()[0]) > 1 &&
+      //         abs(newTriangle.C.position.normalized()[1]) > 1 &&
+      //         abs(newTriangle.C.position.normalized()[2]) > 1)
+      // {
+      //   //dont draw triangle
+      // }
+
+      //CASE 3: One Vertex inside
+      
     }
   }
   else if (currMode == MGL_QUADS)
@@ -268,6 +308,7 @@ void mglEnd()
       newTriangle1.B = currVertices.at(i+1);
       newTriangle1.C = currVertices.at(i+2);
       currTriangles.push_back(newTriangle1);
+
       
       Triangle newTriangle2;
       newTriangle2.A = currVertices.at(i);
@@ -612,6 +653,7 @@ void mglOrtho(MGLfloat left,
               MGLfloat far)
 {
 
+
     mat4 orthoMatrix = {{2/(right-left), 0, 0, 0,
                         0, 2/(top-bottom), 0, 0,
                         0, 0, -2/(far-near), 0, 
@@ -626,13 +668,6 @@ void mglOrtho(MGLfloat left,
       //cout << projection.back() << endl;
       projection.at(projection.size()-1) = projection.back() * orthoMatrix;
     }
-
-
-
-
-
-
-
 
   // if(currMatrixMode == MGL_MODELVIEW)
   // {
