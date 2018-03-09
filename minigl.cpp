@@ -100,7 +100,18 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
   MGLfloat alpha;
   MGLfloat beta;
   MGLfloat gamma;
+  MGLfloat newAlpha;
+  MGLfloat newBeta;
+  MGLfloat newGamma;
   MGLfloat zValue;
+  MGLfloat k;
+  int min_x;
+  int min_y;
+  int max_x;
+  int max_y;
+  MGLfloat w_a;
+  MGLfloat w_b;
+  MGLfloat w_c;
 
 
   vec3 colors; 
@@ -110,11 +121,17 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
 
   x = tri.A.position[0];
   y = tri.A.position[1];
+  w_a = tri.A.position[3];
   
 
   i = (x + 1) * 0.5 * width;
   j = (y + 1) * 0.5 * height;
   
+  min_x = i;
+  min_y = j;
+  max_x = i;
+  max_y = j;
+
 
   fi = i - 0.5;
   fj = j - 0.5;
@@ -124,11 +141,20 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
   
   x = tri.B.position[0];
   y = tri.B.position[1];
+  w_b = tri.B.position[3];
 
   
   i = (x + 1) * 0.5 * width;
   j = (y + 1) * 0.5 * height;
 
+  if(i < min_x)
+    min_x = i;
+  if(j < min_y)
+    min_y = j;
+  if(i > max_x)
+    max_x = i;
+  if(j > max_y)
+    max_y = j;
   
   fi = i - 0.5;
   fj = j - 0.5;
@@ -137,9 +163,19 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
   
   x = tri.C.position[0];
   y = tri.C.position[1];
+  w_c = tri.C.position[3];
 
   i = (x + 1) * 0.5 * width;
   j = (y + 1) * 0.5 * height;
+
+  if(i < min_x)
+    min_x = i;
+  if(j < min_y)
+    min_y = j;
+  if(i > max_x)
+    max_x = i;
+  if(j > max_y)
+    max_y = j;
   
 
   fi = i - 0.5;
@@ -149,12 +185,21 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
   
 
 
+
+  //cout <<  "Triangle coords: " << tri.A.position << endl << tri.B.position << endl << tri.C.position << endl;
+   //cout << "Min x: " << min_x << " Min y:" << min_y << endl;
   
-  
-  
-  for (int i = 0; i < width; i++)
+  if(min_x < 0)
+    min_x = 0;
+  if(min_y < 0)
+    min_y = 0;
+  if(max_x > width)
+    max_x = width;
+  if(max_y > height)
+    max_y = height;
+  for (int i = min_x; i < max_x; i++)
   {
-    for(int j = 0; j < height; j++)
+    for(int j = min_y; j < max_y; j++)
     {
       vec2 P(i, j);
       
@@ -164,17 +209,24 @@ void Rasterize_Triangle(const Triangle& tri, int width, int height, MGLpixel* da
       beta = Area(A,P,C) / Area(A,B,C);
       gamma = Area(A,B,P) / Area(A,B,C);
 
+
+
+      k = (alpha / w_a) + (beta / w_b) + (gamma/ w_c);
+
+      newAlpha = alpha/(w_a * k); 
+      newBeta = beta/(w_b * k);
+      newGamma = gamma/(w_c * k);
       
-       //std::cout << alpha << std::endl;
-       //std::cout << beta << std::endl;
-       //std::cout << gamma << std::endl;
+       // cout << newAlpha << endl;
+       // cout << newBeta << endl;
+       // cout << newGamma << endl;
       
-      if((alpha > 0 && alpha < 1) && 
+      if((newAlpha > 0 && alpha < 1) && 
       (beta > 0 && beta < 1) &&
       (gamma > 0 && gamma < 1))
       {
         //std::cout << "test" << std::endl;
-        colors = ((tri.A.color * alpha )+ (tri.B.color * beta) + (tri.C.color * gamma)); 
+        colors = ((tri.A.color * newAlpha )+ (tri.B.color * newBeta) + (tri.C.color * newGamma)); 
         zValue = ((tri.A.position[2] * alpha )+ (tri.B.position[2] * beta) + (tri.C.position[2] * gamma));
 
       
@@ -361,8 +413,10 @@ void mglVertex3(MGLfloat x,
   //cout <<  "--------------"  << endl << top_of_active_matrix_stack() << endl << "-------x-------" << endl << projection.back() << endl;
 
   currPos = projection.back() * modelview.back() * currPos;
-
+  MGLfloat w = currPos[3];
   currPos = currPos / currPos[3];
+
+  currPos[3] = w;
 
   Vertex currVert;
   currVert.position = currPos;
